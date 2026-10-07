@@ -15,10 +15,10 @@
 #include <vector>
 
 #include <ATen/ATen.h>
-#include <ATen/cuda/CUDAEvent.h>
+#include <ATen/hip/HIPEvent.h>
 #include <ATen/record_function.h>
-#include <c10/cuda/CUDAStream.h>
-#include <cuda_runtime.h>
+#include <c10/hip/HIPStream.h>
+#include <hip/hip_runtime.h>
 
 #include <torch/csrc/distributed/c10d/Work.hpp>
 
@@ -46,12 +46,12 @@ class WorkNCCL : public c10d::Work {
 
   WorkNCCL(
       ProcessGroupNCCL* comm,
-      cudaStream_t stream,
+      hipStream_t stream,
       std::chrono::milliseconds timeout_ms,
       const std::vector<at::Tensor>& inputTensors);
   WorkNCCL(
       ProcessGroupNCCL* comm,
-      cudaStream_t stream,
+      hipStream_t stream,
       std::chrono::milliseconds timeout_ms,
       at::Tensor inputTensor);
   ~WorkNCCL() override;
@@ -155,11 +155,11 @@ class WorkNCCLQueue {
   WorkNCCL::WorkStatus garbageCollect();
   // Finalize function can only be called from the main thread
   WorkNCCL::WorkStatus finalize();
-  void enqueueWork(c10::intrusive_ptr<WorkNCCL> work, cudaStream_t stream);
+  void enqueueWork(c10::intrusive_ptr<WorkNCCL> work, hipStream_t stream);
 
  private:
   WorkNCCL::WorkStatus garbageCollectLocked();
-  std::unordered_map<cudaStream_t, std::queue<c10::intrusive_ptr<WorkNCCL>>>
+  std::unordered_map<hipStream_t, std::queue<c10::intrusive_ptr<WorkNCCL>>>
       stream_work_queues_;
   std::queue<c10::intrusive_ptr<WorkNCCL>> completed_work_queue_;
   std::mutex work_queues_mutex_;

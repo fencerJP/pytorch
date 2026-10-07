@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <unordered_set>
 
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
+#include <ATen/hip/HIPContext.h>
+#include <c10/hip/HIPGuard.h>
 
 namespace c10d::nccl2 {
 

@@ -4,8 +4,8 @@
 
 #include <torch/csrc/distributed/c10d/nccl2/ProcessGroupNCCL.hpp>
 
-#include <c10/cuda/CUDAGraphsC10Utils.h>
-#include <nccl.h>
+#include <c10/hip/HIPGraphsC10Utils.h>
+#include <rccl/rccl.h>
 #include <torch/csrc/distributed/c10d/nccl2/Logging.hpp>
 #include <torch/csrc/distributed/c10d/nccl2/NCCLCachingAllocatorHook.hpp>
 #include <algorithm>
@@ -255,7 +255,7 @@ void ProcessGroupNCCL::checkWorkQueue() {
 }
 
 // The timeout thread cannot make NCCL calls.  The only CUDA call it can make
-// it cudaEventQuery.
+// it hipEventQuery.
 void ProcessGroupNCCL::timeoutWatchdog() noexcept {
   TC_LOG(INFO, this) << "Timeout thread starting for rank: " << rank_;
 
@@ -263,7 +263,7 @@ void ProcessGroupNCCL::timeoutWatchdog() noexcept {
   // abort paths that can throw; swallow here so nothing escapes this thread.
   try {
     c10::cuda::CUDAStreamCaptureModeGuard capture_mode_guard(
-        cudaStreamCaptureModeThreadLocal);
+        hipStreamCaptureModeThreadLocal);
     while (!shutdown_) {
       {
         std::unique_lock<std::mutex> lock(timeout_mutex_);
@@ -390,7 +390,7 @@ bool ProcessGroupNCCL::getGraphCaptureMode() {
 }
 
 c10::intrusive_ptr<WorkNCCL> ProcessGroupNCCL::createWork(
-    cudaStream_t stream,
+    hipStream_t stream,
     std::chrono::milliseconds timeout,
     const std::vector<at::Tensor>& inputTensors) {
   // Only create the work object without enqueuing it
@@ -403,7 +403,7 @@ c10::intrusive_ptr<WorkNCCL> ProcessGroupNCCL::createWork(
 }
 
 c10::intrusive_ptr<WorkNCCL> ProcessGroupNCCL::createWork(
-    cudaStream_t stream,
+    hipStream_t stream,
     std::chrono::milliseconds timeout,
     const at::Tensor& inputTensor) {
   // Single-tensor overload to avoid vector allocation
@@ -439,7 +439,7 @@ void ProcessGroupNCCL::addEphemeralTimeout(
 
 void ProcessGroupNCCL::enqueueWork(
     c10::intrusive_ptr<WorkNCCL> work,
-    cudaStream_t stream) {
+    hipStream_t stream) {
   // In graph capture mode, keep a reference to the work object to prevent
   // premature destruction until the graph gets destroyed, organized per graph
   if (getGraphCaptureMode()) {
@@ -484,7 +484,7 @@ void ProcessGroupNCCL::graphCleanupCallback(void* userData) {
   delete cleanup_data;
 }
 
-cudaStream_t ProcessGroupNCCL::getOperationStream(bool async_op) {
+hipStream_t ProcessGroupNCCL::getOperationStream(bool async_op) {
   c10::cuda::CUDAGuard gpuGuard(device_);
   if (async_op) {
     auto current_stream = at::cuda::getCurrentCUDAStream(device_.index());
@@ -538,7 +538,7 @@ std::unique_ptr<at::cuda::CUDAEvent> ProcessGroupNCCL::getEvent(
   }
 
   return std::make_unique<at::cuda::CUDAEvent>(
-      timing_enabled ? cudaEventDefault : cudaEventDisableTiming);
+      timing_enabled ? hipEventDefault : hipEventDisableTiming);
 }
 
 void ProcessGroupNCCL::returnEvent(

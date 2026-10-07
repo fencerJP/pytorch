@@ -10,8 +10,8 @@
 
 #include <torch/csrc/distributed/c10d/nccl2/ProcessGroupNCCL.hpp>
 
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
+#include <ATen/hip/HIPContext.h>
+#include <c10/hip/HIPGuard.h>
 #include <c10/util/irange.h>
 #include <torch/csrc/cuda/CUDAPluggableAllocator.h>
 #include <torch/csrc/distributed/c10d/Types.hpp>
@@ -200,7 +200,7 @@ std::shared_ptr<c10::Allocator> ProcessGroupNCCL::getMemAllocator() {
   static std::shared_ptr<c10::Allocator> allocator = [] {
     auto nccl_api = std::make_shared<DefaultNcclApi>();
     return torch::cuda::CUDAPluggableAllocator::createCustomAllocator(
-        [nccl_api](size_t size, int device, cudaStream_t stream) {
+        [nccl_api](size_t size, int device, hipStream_t stream) {
           at::cuda::OptionalCUDAGuard gpuGuard(device);
           void* ptr = nullptr;
           ncclResult_t result = nccl_api->memAlloc(&ptr, size);
@@ -210,7 +210,7 @@ std::shared_ptr<c10::Allocator> ProcessGroupNCCL::getMemAllocator() {
               nccl_api->getErrorString(result));
           return ptr;
         },
-        [nccl_api](void* ptr, size_t size, int device, cudaStream_t stream) {
+        [nccl_api](void* ptr, size_t size, int device, hipStream_t stream) {
           at::cuda::OptionalCUDAGuard gpuGuard(device);
           ncclResult_t result = nccl_api->memFree(ptr);
           TORCH_CHECK(

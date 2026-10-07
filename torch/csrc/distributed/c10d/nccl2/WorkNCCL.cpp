@@ -5,10 +5,10 @@
 #include <torch/csrc/distributed/c10d/nccl2/WorkNCCL.hpp>
 
 #include <ATen/core/ivalue.h>
-#include <ATen/cuda/CUDAContext.h>
+#include <ATen/hip/HIPContext.h>
 #include <c10/core/DeviceGuard.h>
-#include <c10/cuda/CUDAException.h>
-#include <c10/cuda/CUDAGraphsC10Utils.h>
+#include <c10/hip/HIPException.h>
+#include <c10/hip/HIPGraphsC10Utils.h>
 
 #include <thread>
 
@@ -21,7 +21,7 @@ namespace c10d::nccl2 {
 
 WorkNCCL::WorkNCCL(
     ProcessGroupNCCL* comm,
-    cudaStream_t stream,
+    hipStream_t stream,
     std::chrono::milliseconds timeout_ms,
     const std::vector<at::Tensor>& inputTensors)
     : inputTensors_(inputTensors),
@@ -41,7 +41,7 @@ WorkNCCL::WorkNCCL(
 
 WorkNCCL::WorkNCCL(
     ProcessGroupNCCL* comm,
-    cudaStream_t stream,
+    hipStream_t stream,
     std::chrono::milliseconds timeout_ms,
     at::Tensor inputTensor)
     : inputTensor_(std::move(inputTensor)),
@@ -234,11 +234,11 @@ void WorkNCCL::synchronizeInternal() {
   // its IPC buffers on the stream, then issues a synchronous barrier before the
   // first all_reduce; a stream-order-only barrier lets the all_reduce race the
   // clear and both ranks spin forever). Skip while the stream is capturing a
-  // CUDA graph: cudaStreamSynchronize is illegal during capture and the
+  // CUDA graph: hipStreamSynchronize is illegal during capture and the
   // captured work is replayed on-device where a host sync is meaningless.
   if (hostBlocking_ && !blocking_wait_ &&
       !c10::cuda::isStreamCapturingMayInitCtx(current_stream)) {
-    C10_CUDA_CHECK(cudaStreamSynchronize(current_stream));
+    C10_CUDA_CHECK(hipStreamSynchronize(current_stream));
   }
 
   // Release tensor references. The CUDA caching allocator manages stream

@@ -117,7 +117,7 @@ torch_string_length(StringHandle handle, size_t* length);
 AOTI_TORCH_EXPORT AOTITorchError
 torch_string_c_str(StringHandle handle, const char** data);
 
-#ifdef USE_CUDA
+#ifdef USE_ROCM
 
 AOTI_TORCH_EXPORT AOTITorchError
 torch_get_current_cuda_blas_handle(void** ret_handle);
@@ -147,7 +147,7 @@ AOTI_TORCH_EXPORT AOTITorchError torch_c10_cuda_check_msg(
 // Free error message allocated by torch_c10_cuda_check_msg
 AOTI_TORCH_EXPORT void torch_c10_cuda_free_error_msg(char* error_msg);
 
-#endif // USE_CUDA
+#endif // USE_ROCM
 
 // Set requires_grad on a tensor
 AOTI_TORCH_EXPORT AOTITorchError
@@ -261,7 +261,7 @@ AOTI_TORCH_EXPORT AOTITorchError
 torch_delete_stable_ivalue(StableIValue* value);
 
 /// Retrieves the underlying Stream's backend-specific non-owning stream handle
-/// (e.g. `cudaStream_t` for CUDA). Returns a void* that can be `static_cast`ed
+/// (e.g. `hipStream_t` for CUDA). Returns a void* that can be `static_cast`ed
 /// accordingly.
 AOTI_TORCH_EXPORT AOTITorchError
 torch_stream_native_handle(StreamHandle stream, void** ret_native_handle);

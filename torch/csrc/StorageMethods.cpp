@@ -28,9 +28,9 @@
 #include <torch/csrc/utils/python_arg_parser.h>
 #include <torch/csrc/utils/python_numbers.h>
 
-#ifdef USE_CUDA
-#include <ATen/native/cuda/Resize.h>
-#include <cuda_runtime.h>
+#ifdef USE_ROCM
+#include <ATen/native/hip/Resize.h>
+#include <hip/hip_runtime.h>
 #endif
 
 #include <ATen/detail/PrivateUse1HooksInterface.h>
@@ -147,7 +147,7 @@ static PyObject* THPStorage_resize_(PyObject* self, PyObject* number_arg) {
   int64_t newsize = THPUtils_unpackLong(number_arg);
   c10::DeviceType device_type = storage.device_type();
   if (device_type == at::kCUDA) {
-#ifdef USE_CUDA
+#ifdef USE_ROCM
     ptrdiff_t size_bytes_i = newsize;
     TORCH_CHECK(
         !c10::overflows<size_t>(size_bytes_i, /*strict_unsigned=*/true),
@@ -157,7 +157,7 @@ static PyObject* THPStorage_resize_(PyObject* self, PyObject* number_arg) {
     const auto size_bytes = static_cast<size_t>(size_bytes_i);
     at::native::resize_bytes_cuda(storage.unsafeGetStorageImpl(), size_bytes);
 #else
-    TORCH_CHECK(false, "built without USE_CUDA");
+    TORCH_CHECK(false, "built without USE_ROCM");
 #endif
   } else {
     at::native::resize_bytes_nocuda(storage, newsize);
@@ -188,7 +188,7 @@ static PyObject* THPStorage_resize_with_addr_(PyObject* self, PyObject* args) {
       THPUtils_typename(number_arg));
   c10::DeviceType device_type = storage.device_type();
   if (device_type == at::kCUDA) {
-#ifdef USE_CUDA
+#ifdef USE_ROCM
     int64_t newsize = THPUtils_unpackLong(number_arg);
     PyObject* addr_arg = PyTuple_GET_ITEM(args, 1);
     TORCH_CHECK(
@@ -210,7 +210,7 @@ static PyObject* THPStorage_resize_with_addr_(PyObject* self, PyObject* args) {
     at::native::resize_bytes_cuda_with_addr(
         storage.unsafeGetStorageImpl(), size_bytes, addr);
 #else
-    TORCH_CHECK(false, "built without USE_CUDA");
+    TORCH_CHECK(false, "built without USE_ROCM");
 #endif
   } else {
     TORCH_CHECK(
